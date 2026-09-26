@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dedox Yourself — paste a link without doxxing yourself</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F5F1;
+    --paper:#FCFBF8;
+    --ink:#1B1B18;
+    --stone:#8B8A82;
+    --stone-light:#D9D7CE;
+    --accent:#235C6E;
+    --accent-dim:#1A4653;
+    --bar:#121212;
+    --ok:#2E6B4F;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#151513;
+      --paper:#1D1D1A;
+      --ink:#EFEDE6;
+      --stone:#9A988E;
+      --stone-light:#3A3A35;
+      --accent:#5FA9BE;
+      --accent-dim:#7DBCCE;
+      --bar:#000000;
+      --ok:#6FCB9C;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#151513;
+    --paper:#1D1D1A;
+    --ink:#EFEDE6;
+    --stone:#9A988E;
+    --stone-light:#3A3A35;
+    --accent:#5FA9BE;
+    --accent-dim:#7DBCCE;
+    --bar:#000000;
+    --ok:#6FCB9C;
+  }
+  html{scroll-padding-top: env(safe-area-inset-top, 0px);}
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100%;
+  }
+  .wrap{
+    width:100%;
+    max-width:640px;
+    padding:56px 24px 40px;
+    margin:0 auto;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:64px;
+  }
+  .mark{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.01em;
+  }
+  .mark .chip{
+    width:9px;height:9px;
+    background:var(--bar);
+    border-radius:1px;
+  }
+  header nav{
+    font-size:13px;
+    color:var(--stone);
+  }
+  h1{
+    font-size:clamp(30px, 5vw, 42px);
+    line-height:1.12;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    margin:0 0 14px;
+    max-width:11ch;
+  }
+  .lede{
+    font-size:16px;
+    line-height:1.55;
+    color:var(--stone);
+    max-width:44ch;
+    margin:0 0 40px;
+  }
+  form{
+    display:flex;
+    gap:10px;
+    align-items:stretch;
+  }
+  input[type="url"]{
+    flex:1;
+    min-width:0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14.5px;
+    padding:16px 16px;
+    background:var(--paper);
+    border:1.5px solid var(--stone-light);
+    border-radius:3px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  input[type="url"]::placeholder{
+    color:var(--stone);
+    opacity:0.8;
+  }
+  input[type="url"]:focus{
+    border-color:var(--accent);
+  }
+  button{
+    font-family:'Archivo', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    padding:0 22px;
+    background:var(--bar);
+    color:#F6F5F1;
+    border:none;
+    border-radius:3px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .15s ease, transform .05s ease;
+  }
+  button:hover{ background:var(--accent-dim); }
+  button:active{ transform:scale(0.98); }
+  button:focus-visible, input:focus-visible, .copy-btn:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  .hint{
+    font-size:12.5px;
+    color:var(--stone);
+    margin-top:10px;
+  }
+  .result{
+    margin-top:44px;
+    display:none;
+  }
+  .result.show{ display:block; animation:rise .35s ease; }
+  @keyframes rise{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .row-label{
+    font-size:11.5px;
+    color:var(--stone);
+    margin-bottom:7px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .row-label .dot{
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--stone-light);
+  }
+  .before-box{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    line-height:1.7;
+    padding:14px 16px;
+    background:var(--paper);
+    border:1px solid var(--stone-light);
+    border-radius:3px;
+    color:var(--stone);
+    word-break:break-all;
+    margin-bottom:22px;
+  }
+  .before-box .redact{
+    background:var(--bar);
+    color:var(--bar);
+    border-radius:2px;
+    padding:0 2px;
+    user-select:none;
+  }
+  .after-box{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    padding:16px;
+    background:var(--paper);
+    border:1.5px solid var(--ok);
+    border-radius:3px;
+    word-break:break-all;
+    color:var(--ink);
+  }
+  .after-box span{ flex:1; }
+  .copy-btn{
+    flex-shrink:0;
+    font-family:'Archivo', sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:8px 14px;
+    background:transparent;
+    color:var(--ok);
+    border:1.5px solid var(--ok);
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .copy-btn:hover{ background:var(--ok); color:var(--paper); }
+  .removed{
+    margin-top:18px;
+    font-size:12.5px;
+    color:var(--stone);
+    line-height:1.6;
+  }
+  .removed b{ color:var(--ink); font-weight:600; }
+  .clean-msg{
+    margin-top:18px;
+    font-size:13px;
+    color:var(--ok);
+  }
+  footer{
+    margin-top:auto;
+    width:100%;
+    max-width:640px;
+    padding:28px 24px 32px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+    font-size:12px;
+    color:var(--stone);
+    border-top:1px solid var(--stone-light);
+  }
+  .ad-slot{
+    margin-top:56px;
+    padding:18px;
+    border:1px dashed var(--stone-light);
+    border-radius:3px;
+    text-align:center;
+    font-size:11.5px;
+    color:var(--stone);
+    letter-spacing:0.02em;
+  }
+  .tip-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Archivo', sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    color:var(--ink);
+    text-decoration:none;
+    padding:7px 12px;
+    border:1.5px solid var(--stone-light);
+    border-radius:3px;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .tip-link:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  @media (max-width:480px){
+    form{ flex-direction:column; }
+    button{ padding:14px; }
+    header{ margin-bottom:44px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark"><span class="chip"></span>Dedox Yourself</div>
+    <nav>no signup, nothing stored</nav>
+  </header>
+
+  <h1>Paste a link without doxxing yourself.</h1>
+  <p class="lede">Social media links carry a hidden token that ties back to whoever shared them. If you don't want it linking back to you, Dedox Yourself strips that token out first.</p>
+
+  <form id="scrubForm">
+    <input id="urlInput" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+      placeholder="https://www.instagram.com/reel/..." aria-label="Link to clean" required>
+    <button type="submit">Strip it</button>
+  </form>
+  <p class="hint">Works on Instagram, YouTube, TikTok, X/Twitter and most other share links.</p>
+
+  <div class="result" id="result">
+    <div id="beforeWrap">
+      <div class="row-label"><span class="dot"></span>what was in it</div>
+      <div class="before-box" id="beforeBox"></div>
+    </div>
+
+    <div class="row-label"><span class="dot" style="background:var(--ok)"></span>clean link</div>
+    <div class="after-box">
+      <span id="afterText"></span>
+      <button class="copy-btn" id="copyBtn" type="button">Copy</button>
+    </div>
+
+    <div id="removedInfo"></div>
+  </div>
+
+</div>
+
+<footer>
+  <span>Dedox Yourself</span>
+  <span>Making privacy first</span>
+  <a class="tip-link" href="https://ko-fi.com/curtis4108" id="tipLink" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+</footer>
+
+<script>
+(function(){
+  const TRACKING_KEYS = [
+    'igsh','igshid','si','feature','fbclid','gclid','msclkid','dclid',
+    'ref','ref_src','ref_url','s','t','cvid','spm','ncid','mc_cid','mc_eid',
+    '_ga','vero_id','yclid','wt_zmc','share_id','shareId','app','is_from_webapp',
+    'sender_device','web_client'
+  ];
+  const TRACKING_PREFIXES = ['utm_'];
+
+  function isTracking(key){
+    const k = key.toLowerCase();
+    if (TRACKING_KEYS.includes(k)) return true;
+    return TRACKING_PREFIXES.some(p => k.startsWith(p));
+  }
+
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  function scrub(raw){
+    let url;
+    try {
+      url = new URL(raw.trim());
+    } catch(e) {
+      try { url = new URL('https://' + raw.trim()); }
+      catch(e2) { return null; }
+    }
+
+    const removedPairs = [];
+    const kept = new URLSearchParams();
+    for (const [key, value] of url.searchParams.entries()){
+      if (isTracking(key)){
+        removedPairs.push([key, value]);
+      } else {
+        kept.append(key, value);
+      }
+    }
+    url.search = kept.toString();
+
+    // strip a bare tracking fragment like #igshid=... but leave real anchors alone
+    if (url.hash && /^#(igshid|igsh|utm_|ref)/i.test(url.hash)){
+      url.hash = '';
+    }
+
+    return { clean: url.toString(), removedPairs, original: raw.trim() };
+  }
+
+  function renderBefore(original, removedPairs){
+    let html = escapeHtml(original);
+    removedPairs.forEach(([key, value]) => {
+      const pair = key + '=' + value;
+      const escapedPair = escapeHtml(pair);
+      if (html.includes(escapedPair)){
+        html = html.replace(escapedPair, '<span class="redact">' + escapedPair + '</span>');
+      }
+    });
+    return html;
+  }
+
+  const form = document.getElementById('scrubForm');
+  const input = document.getElementById('urlInput');
+  const result = document.getElementById('result');
+  const beforeWrap = document.getElementById('beforeWrap');
+  const beforeBox = document.getElementById('beforeBox');
+  const afterText = document.getElementById('afterText');
+  const copyBtn = document.getElementById('copyBtn');
+  const removedInfo = document.getElementById('removedInfo');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const raw = input.value;
+    if (!raw.trim()) return;
+
+    const outcome = scrub(raw);
+    if (!outcome){
+      afterText.textContent = "That doesn't look like a link — check it and try again.";
+      beforeWrap.style.display = 'none';
+      removedInfo.innerHTML = '';
+      result.classList.add('show');
+      return;
+    }
+
+    const { clean, removedPairs, original } = outcome;
+
+    if (removedPairs.length === 0){
+      beforeWrap.style.display = 'none';
+      removedInfo.innerHTML = '<div class="clean-msg">Already clean — nothing to strip.</div>';
+    } else {
+      beforeWrap.style.display = 'block';
+      beforeBox.innerHTML = renderBefore(original, removedPairs);
+      const names = removedPairs.map(p => '<b>' + escapeHtml(p[0]) + '</b>').join(', ');
+      removedInfo.innerHTML = '<div class="removed">Removed ' + removedPairs.length + ' tracking ' +
+        (removedPairs.length === 1 ? 'field' : 'fields') + ': ' + names + '</div>';
+    }
+
+    afterText.textContent = clean;
+    result.classList.add('show');
+  });
+
+  copyBtn.addEventListener('click', async function(){
+    try {
+      await navigator.clipboard.writeText(afterText.textContent);
+      copyBtn.textContent = 'Copied';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1400);
+    } catch(e){
+      copyBtn.textContent = 'Select & copy';
+    }
+  });
+})();
+</script>
+</body>
+</html>
