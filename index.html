@@ -292,14 +292,14 @@
   </header>
 
   <h1>Paste a link without doxxing yourself.</h1>
-  <p class="lede">Social media links carry a hidden token that ties back to whoever shared them. If you don't want it linking back to you, Dedox Yourself strips that token out first.</p>
+  <p class="lede">YouTube and Instagram links carry a hidden token that ties back to whoever shared them. If you don't want it linking back to you, Dedox Yourself strips that token out first.</p>
 
   <form id="scrubForm">
     <input id="urlInput" type="url" inputmode="url" autocomplete="off" spellcheck="false"
-      placeholder="https://www.instagram.com/reel/..." aria-label="Link to clean" required>
+      placeholder="Paste a YouTube or Instagram link" aria-label="Link to clean" required>
     <button type="submit">Strip it</button>
   </form>
-  <p class="hint">Works on Instagram, YouTube, TikTok, X/Twitter and most other share links.</p>
+  <p class="hint">Works on YouTube and Instagram links.</p>
 
   <div class="result" id="result">
     <div id="beforeWrap">
@@ -326,21 +326,16 @@
 
 <script>
 (function(){
-  const TRACKING_KEYS = [
-    'igsh','igshid','si','feature','fbclid','gclid','msclkid','dclid',
-    'ref','ref_src','ref_url','s','t','cvid','spm','ncid','mc_cid','mc_eid',
-    '_ga','vero_id','yclid','wt_zmc','share_id','shareId','app','is_from_webapp',
-    'sender_device','web_client', 'web_id','user_id','sec_uid','share_app_id',
-    'share_link_id','source', 'enter_from','_r','_t','timestamp','checksum',
-    'preview_pb','u_code', 'did','iid','device_id','aweme_id','share_iid','unique_id'
+  // Allowlist per platform: only the listed parameters survive, everything
+  // else is dropped. To keep YouTube playlist links, add 'list' and 'index'.
+  const PLATFORMS = [
+    { name: 'YouTube',
+      hosts: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'],
+      keep: ['v', 't', 'start'] },
+    { name: 'Instagram',
+      hosts: ['instagram.com', 'instagr.am'],
+      keep: ['img_index'] }   // which slide of a carousel; harmless and useful
   ];
-  const TRACKING_PREFIXES = ['utm_'];
-
-  function isTracking(key){
-    const k = key.toLowerCase();
-    if (TRACKING_KEYS.includes(k)) return true;
-    return TRACKING_PREFIXES.some(p => k.startsWith(p));
-  }
 
   function escapeHtml(str){
     return str.replace(/[&<>"']/g, c => ({
@@ -357,21 +352,27 @@
       catch(e2) { return null; }
     }
 
+    const host = url.hostname.replace(/^(www|m|music)\./, '');
+    const platform = PLATFORMS.find(p => p.hosts.includes(host));
+    if (!platform) return null;
+
+    // Instagram /share/ links redirect to the real post, so the link you
+    // paste isn't the one people would see. Ask for the expanded URL instead.
+    if (platform.name === 'Instagram' && url.pathname.startsWith('/share/')){
+      return { error: "This is an Instagram share link, which redirects to the post. Open it once in a browser, copy the full link from the address bar, then paste that here." };
+    }
+
     const removedPairs = [];
     const kept = new URLSearchParams();
     for (const [key, value] of url.searchParams.entries()){
-      if (isTracking(key)){
-        removedPairs.push([key, value]);
-      } else {
+      if (platform.keep.includes(key)){
         kept.append(key, value);
+      } else {
+        removedPairs.push([key, value]);
       }
     }
     url.search = kept.toString();
-
-    // strip a bare tracking fragment like #igshid=... but leave real anchors alone
-    if (url.hash && /^#(igshid|igsh|utm_|ref)/i.test(url.hash)){
-      url.hash = '';
-    }
+    url.hash = '';
 
     return { clean: url.toString(), removedPairs, original: raw.trim() };
   }
@@ -403,8 +404,8 @@
     if (!raw.trim()) return;
 
     const outcome = scrub(raw);
-    if (!outcome){
-      afterText.textContent = "That doesn't look like a link — check it and try again.";
+    if (!outcome || outcome.error){
+      afterText.textContent = outcome ? outcome.error : "That doesn't look like a YouTube or Instagram link — check it and try again.";
       beforeWrap.style.display = 'none';
       removedInfo.innerHTML = '';
       result.classList.add('show');
