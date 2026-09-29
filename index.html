@@ -292,14 +292,14 @@
   </header>
 
   <h1>Paste a link without doxxing yourself.</h1>
-  <p class="lede">YouTube and Instagram links carry a hidden token that ties back to whoever shared them. If you don't want it linking back to you, Dedox Yourself strips that token out first.</p>
+  <p class="lede">YouTube, Instagram and TikTok links carry a hidden token that ties back to whoever shared them. If you don't want it linking back to you, Dedox Yourself strips that token out first.</p>
 
   <form id="scrubForm">
     <input id="urlInput" type="url" inputmode="url" autocomplete="off" spellcheck="false"
-      placeholder="Paste a YouTube or Instagram link" aria-label="Link to clean" required>
+      placeholder="Paste a YouTube, Instagram or TikTok link" aria-label="Link to clean" required>
     <button type="submit">Strip it</button>
   </form>
-  <p class="hint">Works on YouTube and Instagram links.</p>
+  <p class="hint">Works on YouTube, Instagram and TikTok links.</p>
 
   <div class="result" id="result">
     <div id="beforeWrap">
@@ -334,7 +334,12 @@
       keep: ['v', 't', 'start'] },
     { name: 'Instagram',
       hosts: ['instagram.com', 'instagr.am'],
-      keep: ['img_index'] }   // which slide of a carousel; harmless and useful
+      keep: ['img_index'] },  // which slide of a carousel; harmless and useful
+    { name: 'TikTok',
+      hosts: ['tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com'],
+      keep: [],                // a TikTok link needs no parameters at all to work
+      redirect: (host, path) => host === 'vm.tiktok.com' || host === 'vt.tiktok.com' || path.startsWith('/t/'),
+      redirectLabel: 'short link' }
   ];
 
   function escapeHtml(str){
@@ -353,11 +358,14 @@
     }
 
     const host = url.hostname.replace(/^(www|m|music)\./, '');
-    const platform = PLATFORMS.find(p => p.hosts.includes(host));
+    const platform = PLATFORMS.find(p => p.hosts && p.hosts.includes(host));
     if (!platform) return null;
 
-    // Instagram /share/ links redirect to the real post, so the link you
-    // paste isn't the one people would see. Ask for the expanded URL instead.
+    // Share/short links redirect to the real page, so the link you paste
+    // isn't the one people would see. Ask for the expanded URL instead.
+    if (platform.redirect && platform.redirect(host, url.pathname)){
+      return { error: "This is a " + platform.name + " " + platform.redirectLabel + ", which redirects to the real page. Open it once in a browser, copy the full link from the address bar, then paste that here." };
+    }
     if (platform.name === 'Instagram' && url.pathname.startsWith('/share/')){
       return { error: "This is an Instagram share link, which redirects to the post. Open it once in a browser, copy the full link from the address bar, then paste that here." };
     }
@@ -405,7 +413,7 @@
 
     const outcome = scrub(raw);
     if (!outcome || outcome.error){
-      afterText.textContent = outcome ? outcome.error : "That doesn't look like a YouTube or Instagram link — check it and try again.";
+      afterText.textContent = outcome ? outcome.error : "That doesn't look like a YouTube, Instagram or TikTok link — check it and try again.";
       beforeWrap.style.display = 'none';
       removedInfo.innerHTML = '';
       result.classList.add('show');
